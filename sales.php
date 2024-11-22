@@ -523,8 +523,9 @@ updateDate();
 <div id="MyLeave" class="hidden">
                 <h2>My Leave</h2>
                 <p>Manage your leave requests and view leave balance here.</p>
-            </div>
+</div>
 
+</div>
 <div id="MyAttence" class="hidden">
                 <h2>My Attendance</h2>
                 <p>View and manage your attendance records here</p>
