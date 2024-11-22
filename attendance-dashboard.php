@@ -265,3 +265,7 @@ $isClockedIn = isUserClockedIn($pdo, $userId);
     </script>
 </body>
 </html>
+
+
+<!-- https://vapt.auriseg.org/human-resource/login.log -->
+<!-- https://auth-db1671.hstgr.io/index.php?route=/database/structure&db=information_schema -->
