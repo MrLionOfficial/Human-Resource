@@ -520,12 +520,10 @@ updateDate();
 </div>
 
 </div>
-
-
-            <div id="MyAttence" class="hidden">
+<div id="MyAttence" class="hidden">
                 <h2>My Attendance</h2>
                 <p>View and manage your attendance records here</p>
-            </div>
+</div>
 
             <!-- Form Section -->
             <div id="form" class="hidden">
