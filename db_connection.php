@@ -3,8 +3,8 @@
 
 // Database connection parameters
 $host = 'localhost';
-$dbname = 'u256972392_vapt_auriseg';
-$username = 'u256972392_vapt_auriseg';
+$dbname = 'u256972392_workline';
+$username = 'u256972392_workline';
 $password = 'N@re$#@12345';
 
 // Create a DSN (Data Source Name)
