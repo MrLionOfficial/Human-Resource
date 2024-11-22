@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($name && $date && $checkInTime && $checkOutTime) {
         saveEmployeeTime($name, $date, $checkInTime, $checkOutTime);
-        $message = "Employee time recorded successfully!";
+        // $message = "Employee time recorded successfully!";
     } else {
         $message = "Please fill in all fields.";
     }
@@ -519,7 +519,167 @@ updateDate();
     </div>
 </div>
 
+
+<div id="MyLeave" class="hidden">
+    <h1>Leave</h1>
+    <div style="display: flex; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); padding: 10px; margin-bottom: 20px;">
+        <button class="active" style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Status</button>
+        <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Requests</button>
+        <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Holiday List</button>
+    </div>
+
+    <!-- Dropdown and Display Buttons Section -->
+    <div
+        style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #eaf4fb;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        "
+    >
+        <!-- Dropdown -->
+        <select style="padding: 10px; border-radius: 4px; border: 1px solid #ced4da; width: 200px; font-size: 14px;">
+            <option value="" disabled selected>Select Leave Type</option>
+            <option value="sick">Sick Leave</option>
+            <option value="privilege">Privilege Leave</option>
+            <option value="casual">Casual Leave</option>
+            <option value="leave_without_pay">Leave Without Pay</option>
+        </select>
+
+        <!-- Buttons -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button
+                style="
+                    background: none;
+                    color: #007bff;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: none;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-comments"></i> FAQs
+            </button>
+            <button
+                id="tableButton"
+                style="
+                    background-color: #007bff;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: none;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-table"></i> Table
+            </button>
+            <button
+                id="graphButton"
+                style="
+                    background-color: #f8f9fa;
+                    color: #6c757d;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: 1px solid #ced4da;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-chart-pie"></i> Graph
+            </button>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div id="table-view" style="display: none;">
+        <table border="1" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Leave Type</th>
+                    <th>Accrued</th>
+                    <th>Used (Till Date)</th>
+                    <th>Used (Calendar Year)</th>
+                    <th>Requested</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Sick Leave</td>
+                    <td>4</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>1</td>
+                    <td>3</td>
+                </tr>
+                <tr>
+                    <td>Privilege Leave</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>Leave Without Pay</td>
+                    <td>As Per Need</td>
+                    <td>0</td>
+                    <td>-</td>
+                    <td>0</td>
+                    <td>As Per Need</td>
+                </tr>
+                <tr>
+                    <td>Casual Leave</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Graph View -->
+    <div id="graph-view" style="display: none; text-align: center; padding: 20px;">
+        <h3>Graphical Representation Coming Soon!</h3>
+    </div>
 </div>
+</div>
+
+<script>
+    // Get the buttons and views
+    const tableButton = document.getElementById("tableButton");
+    const graphButton = document.getElementById("graphButton");
+    const tableView = document.getElementById("table-view");
+    const graphView = document.getElementById("graph-view");
+
+    // Add event listeners for buttons
+    tableButton.addEventListener("click", () => {
+        tableView.style.display = "block"; // Show Table
+        graphView.style.display = "none"; // Hide Graph
+    });
+
+    graphButton.addEventListener("click", () => {
+        tableView.style.display = "none"; // Hide Table
+        graphView.style.display = "block"; // Show Graph
+    });
+</script>
 <div id="MyAttence" class="hidden">
                 <h2>My Attendance</h2>
                 <p>View and manage your attendance records here</p>
@@ -565,11 +725,6 @@ updateDate();
                         </tr>
                     <?php endforeach; ?>
                 </table>
-            </div>
-
-            <div id="MyLeave" class="hidden">
-                <h2>My Leave</h2>
-                <p>Manage your leave requests and view leave balance here.</p>
             </div>
 
             <div id="MyCalendar" class="hidden">
