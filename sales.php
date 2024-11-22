@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($name && $date && $checkInTime && $checkOutTime) {
         saveEmployeeTime($name, $date, $checkInTime, $checkOutTime);
-        // $message = "Employee time recorded successfully!";
+        $message = "Employee time recorded successfully!";
     } else {
         $message = "Please fill in all fields.";
     }
@@ -270,6 +270,7 @@ $employeeTimes = getEmployeeTimes();
         .filter-panel h3 {
             margin-bottom: 15px;
         }
+        
     </style>
 </head>
 <body>
@@ -339,9 +340,9 @@ $employeeTimes = getEmployeeTimes();
             <p style="margin: 0;">Average Break Duration</p>
         </div>
     </div>
-</div>
+  </div>
 
-<script>
+  <script>
     let clockInTime = null;
     let breakStartTime = null;
     let isOnBreak = false;
@@ -418,11 +419,12 @@ $employeeTimes = getEmployeeTimes();
     const year = currentDate.getFullYear();
     const dateString = `${day} ${month} ${year}`;
     dateElement.innerText = dateString;
-}
+   }
 
-// Initial call to set the current date
-updateDate();
-</script>
+  // Initial call to set the current date
+  updateDate();
+
+    </script>
 
         <!-- Chart Section -->
         <div style="flex: 3; background-color: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
@@ -436,14 +438,21 @@ updateDate();
             </div>
         </div>
      </div>
-<div id="calendar-section" style="margin-top: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-      <h2 style="font-size: 24px; margin-bottom: 10px;">Calendar</h2>
 
-        <!-- Calendar UI -->
-       <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+<div id="calendar-section" style="margin-top: 20px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+    <h2 style="font-size: 24px; margin-bottom: 10px;">Calendar</h2>
+    <!-- Calendar UI -->
+    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
         <div style="flex: 1; max-width: 100%; overflow-x: auto;">
+            <!-- Calendar Navigation -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <button id="prev-month" style="background-color: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">&lt; Previous</button>
+                <span id="month-year" style="font-size: 18px; font-weight: bold;"></span>
+                <button id="next-month" style="background-color: #007bff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">Next &gt;</button>
+            </div>
+
             <!-- Calendar Table -->
-            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; color: #333;">
+            <table id="calendar-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; color: #333;">
                 <thead style="background-color: #f5f5f5;">
                     <tr>
                         <th style="padding: 10px;">Sunday</th>
@@ -455,81 +464,369 @@ updateDate();
                         <th style="padding: 10px;">Saturday</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Rows for August 2024 -->
-                    <tr>
-                        <td style="padding: 10px; background-color: #f9f9f9;">28</td>
-                        <td style="padding: 10px; background-color: #f9f9f9;">29</td>
-                        <td style="padding: 10px; background-color: #f9f9f9;">30</td>
-                        <td style="padding: 10px; background-color: #f9f9f9;">31</td>
-                        <td style="padding: 10px;">1</td>
-                        <td style="padding: 10px;">2</td>
-                        <td style="padding: 10px;">3</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px;">4</td>
-                        <td style="padding: 10px;">5</td>
-                        <td style="padding: 10px;">6</td>
-                        <td style="padding: 10px;">7</td>
-                        <td style="padding: 10px;">8</td>
-                        <td style="padding: 10px;">9</td>
-                        <td style="padding: 10px;">10</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px;">11</td>
-                        <td style="padding: 10px;">12</td>
-                        <td style="padding: 10px;">13</td>
-                        <td style="padding: 10px;">14</td>
-                        <td style="padding: 10px;">15</td>
-                        <td style="padding: 10px;">16</td>
-                        <td style="padding: 10px;">17</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px;">18</td>
-                        <td style="padding: 10px;">19</td>
-                        <td style="padding: 10px;">20</td>
-                        <td style="padding: 10px;">21</td>
-                        <td style="padding: 10px;">22</td>
-                        <td style="padding: 10px;">23</td>
-                        <td style="padding: 10px;">24</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px;">25</td>
-                        <td style="padding: 10px;">26</td>
-                        <td style="padding: 10px;">27</td>
-                        <td style="padding: 10px;">28</td>
-                        <td style="padding: 10px;">29</td>
-                        <td style="padding: 10px;">30</td>
-                        <td style="padding: 10px;">31</td>
-                    </tr>
+                <tbody id="calendar-body">
+                    <!-- Calendar Rows (filled dynamically) -->
                 </tbody>
             </table>
         </div>
         <div style="flex: 1; max-width: 300px; background-color: #f5f5f5; padding: 15px; border-radius: 8px;">
             <h3 style="font-size: 18px; margin-bottom: 10px;">Filter Events</h3>
             <ul style="list-style: none; padding: 0; font-size: 14px; color: #555;">
-                <li style="margin-bottom: 5px;"><span style="color: #d9534f; font-weight: bold;">●</span> My Leave: 0 Day(s)</li>
-                <li style="margin-bottom: 5px;"><span style="color: #f0ad4e; font-weight: bold;">●</span> My Leave Request: 0 Day(s)</li>
-                <li style="margin-bottom: 5px;"><span style="color: #5cb85c; font-weight: bold;">●</span> Notify: 0 Day(s)</li>
-                <li style="margin-bottom: 5px;"><span style="color: #5bc0de; font-weight: bold;">●</span> Team Leave: 0 Day(s)</li>
-                <li style="margin-bottom: 5px;"><span style="color: #007bff; font-weight: bold;">●</span> Holiday: 1 Day(s)</li>
-                <li style="margin-bottom: 5px;"><span style="color: #6f42c1; font-weight: bold;">●</span> Week Off: 9 Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #d9534f; font-weight: bold;">●</span> My Leave: <span id="leave-days">0</span> Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #f0ad4e; font-weight: bold;">●</span> My Leave Request: <span id="leave-requests">0</span> Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #5cb85c; font-weight: bold;">●</span> Notify: <span id="notify-days">0</span> Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #5bc0de; font-weight: bold;">●</span> Team Leave: <span id="team-leave">0</span> Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #007bff; font-weight: bold;">●</span> Holiday: <span id="holiday-days">0</span> Day(s)</li>
+                <li style="margin-bottom: 5px;"><span style="color: #6f42c1; font-weight: bold;">●</span> Week Off: <span id="week-off-days">0</span> Day(s)</li>
             </ul>
         </div>
     </div>
-</div>
+  </div>
 
+ 
+ <script>
+   const monthNames = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
 
-<div id="MyLeave" class="hidden">
-                <h2>My Leave</h2>
-                <p>Manage your leave requests and view leave balance here.</p>
-</div>
+    // Get today's date
+    const today = new Date();
+    let currentMonth = today.getMonth(); // Current month (0-based)
+    let currentYear = today.getFullYear(); // Current year
+    const currentDate = today.getDate(); // Current day of the month
+
+    // Function to generate the calendar dynamically
+    function generateCalendar(month, year) {
+        const calendarBody = document.getElementById("calendar-body");
+        const monthYear = document.getElementById("month-year");
+        calendarBody.innerHTML = ""; // Clear previous calendar
+        monthYear.innerText = `${monthNames[month]} ${year}`;
+
+        const firstDay = new Date(year, month).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let date = 1;
+        for (let i = 0; i < 6; i++) {
+            // Create a new row
+            const row = document.createElement("tr");
+
+            for (let j = 0; j < 7; j++) {
+                const cell = document.createElement("td");
+                cell.style.padding = "10px";
+                cell.style.backgroundColor = "#f9f9f9";
+
+                if (i === 0 && j < firstDay) {
+                    // Empty cells for days of the previous month
+                    cell.innerHTML = "";
+                } else if (date > daysInMonth) {
+                    // Empty cells after the last day of the month
+                    cell.innerHTML = "";
+                } else {
+                    // Add the date to the cell
+                    cell.innerHTML = date;
+
+                    // Highlight current date
+                    if (month === today.getMonth() && year === today.getFullYear() && date === currentDate) {
+                        cell.style.backgroundColor = "#007bff";
+                        cell.style.color = "#fff";
+                        cell.style.fontWeight = "bold";
+                        cell.title = "Today";
+                    }
+
+                    // Add special styles for specific days (example)
+                    if (date === 15) {
+                        cell.style.backgroundColor = "#5cb85c";
+                        cell.style.color = "#fff";
+                        cell.title = "Holiday";
+                    }
+                    if (date === 9 || date === 23) {
+                        cell.style.backgroundColor = "#f0ad4e";
+                        cell.style.color = "#fff";
+                        cell.title = "Leave Request";
+                    }
+
+                    date++;
+                }
+
+                row.appendChild(cell);
+            }
+
+            calendarBody.appendChild(row);
+
+            // Stop creating rows if all days are filled
+            if (date > daysInMonth) break;
+        }
+    }
+
+    // Function to handle next month navigation
+    function nextMonth() {
+        currentMonth++;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        generateCalendar(currentMonth, currentYear);
+    }
+
+    // Function to handle previous month navigation
+    function prevMonth() {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        generateCalendar(currentMonth, currentYear);
+    }
+
+    // Event Listeners for Navigation Buttons
+    document.getElementById("next-month").addEventListener("click", nextMonth);
+    document.getElementById("prev-month").addEventListener("click", prevMonth);
+
+    // Initialize the calendar for the current month
+    generateCalendar(currentMonth, currentYear);
+ </script>
+ <div style="flex: 3; background-color: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <h2 style="font-size: 24px; margin-bottom: 10px;">Objectives & Key Results</h2>
+            <div style="display: flex; justify-content: space-between; gap: 20px;">
+                <!-- Me as Owner -->
+                <div style="flex: 1; text-align: center; background-color: #f5f5f5; border-radius: 8px; padding: 15px;">
+                    <h3 style="font-size: 18px; margin-bottom: 10px;">Me as Owner</h3>
+                    <div style="width: 100%; height: 150px; display: flex; align-items: center; justify-content: center;">
+                        <p>Key Results: 0</p>
+                    </div>
+                    <ul style="list-style: none; padding: 0; font-size: 14px; color: #555;">
+                        <li><span style="color: purple; font-weight: bold;">●</span> Not Started</li>
+                        <li><span style="color: green; font-weight: bold;">●</span> Ongoing</li>
+                        <li><span style="color: red; font-weight: bold;">●</span> Overdue</li>
+                        <li><span style="color: lightgreen; font-weight: bold;">●</span> Completed</li>
+                        <li><span style="color: orange; font-weight: bold;">●</span> Completed Over-TAT</li>
+                    </ul>
+                </div>
+
+                <!-- Me as Collaborator -->
+                <div style="flex: 1; text-align: center; background-color: #f5f5f5; border-radius: 8px; padding: 15px;">
+                    <h3 style="font-size: 18px; margin-bottom: 10px;">Me as Collaborator</h3>
+                    <div style="width: 100%; height: 150px; display: flex; align-items: center; justify-content: center;">
+                        <p>Key Results: 0</p>
+                    </div>
+                    <ul style="list-style: none; padding: 0; font-size: 14px; color: #555;">
+                        <li><span style="color: purple; font-weight: bold;">●</span> Not Started</li>
+                        <li><span style="color: green; font-weight: bold;">●</span> Ongoing</li>
+                        <li><span style="color: red; font-weight: bold;">●</span> Overdue</li>
+                        <li><span style="color: lightgreen; font-weight: bold;">●</span> Completed</li>
+                        <li><span style="color: orange; font-weight: bold;">●</span> Completed Over-TAT</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+ </div>
+ 
+ <div id="MyLeave" class="hidden">
+    <h1>Leave</h1>
+    <div style="display: flex; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); padding: 10px; margin-bottom: 20px;">
+            <button class="active" style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Status</button>
+            <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Requests</button>
+            <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Holiday List</button>
+    </div>
+
+    <div
+        style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #eaf4fb;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        "
+    >
+        <!-- Dropdown -->
+        <select style="padding: 10px; border-radius: 4px; border: 1px solid #ced4da; width: 200px; font-size: 14px;">
+            <option value="" disabled selected>Select Leave Type</option>
+            <option value="sick">Sick Leave</option>
+            <option value="privilege">Privilege Leave</option>
+            <option value="casual">Casual Leave</option>
+            <option value="leave_without_pay">Leave Without Pay</option>
+        </select>
+
+        <!-- Buttons -->
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button
+                style="
+                    background: none;
+                    color: #007bff;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: none;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-comments"></i> FAQs
+            </button>
+            <button
+                id="tableButton"
+                style="
+                    background-color: #007bff;
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: none;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-table"></i> Table
+            </button>
+            <button
+                id="graphButton"
+                style="
+                    background-color: #f8f9fa;
+                    color: #6c757d;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    cursor: pointer;
+                    border: 1px solid #ced4da;
+                    padding: 5px 15px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                "
+            >
+                <i class="fa fa-chart-pie"></i> Graph
+            </button>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div id="table-view" style="display: none;">
+        <table border="1" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th>Leave Type</th>
+                    <th>Accrued</th>
+                    <th>Used (Till Date)</th>
+                    <th>Used (Calendar Year)</th>
+                    <th>Requested</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Sick Leave</td>
+                    <td>4</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>1</td>
+                    <td>3</td>
+                </tr>
+                <tr>
+                    <td>Privilege Leave</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+                <tr>
+                    <td>Leave Without Pay</td>
+                    <td>As Per Need</td>
+                    <td>0</td>
+                    <td>-</td>
+                    <td>0</td>
+                    <td>As Per Need</td>
+                </tr>
+                <tr>
+                    <td>Casual Leave</td>
+                    <td>0</td>
+                    <td>0</td>
+                    <td>0.00</td>
+                    <td>0</td>
+                    <td>0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+  
+            <!-- Sick Leave Card -->
+            <div id="graph-view" style="display: none; text-align: center; padding: 20px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div class="card" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex: 1; min-width: 280px; padding: 20px; position: relative;">
+                <div class="apply-leave" style="position: absolute; top: 20px; right: 20px; background-color: #007bff; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">Apply Leave</div>
+                <h3 style="font-size: 18px; margin: 0 0 10px;">Sick Leave</h3>
+                <div class="chart" style="width: 80px; height: 80px; border-radius: 50%; border: 6px solid #007bff; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                    <p style="font-size: 14px; margin: 0;">3 Balance</p>
+                </div>
+                <p style="font-size: 14px; margin: 5px 0;">4 Accrued</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Used Till Date</p>
+                <p style="font-size: 14px; margin: 5px 0;">1 Requested</p>
+            </div>
+            <!-- Privilege Leave Card -->
+            <div class="card" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex: 1; min-width: 280px; padding: 20px;">
+                <h3 style="font-size: 18px; margin: 0 0 10px;">Privilege Leave</h3>
+                <div class="chart" style="width: 80px; height: 80px; border-radius: 50%; border: 6px solid #6c757d; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                    <p style="font-size: 14px; margin: 0;">0 Balance</p>
+                </div>
+                <p style="font-size: 14px; margin: 5px 0;">0 Accrued</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Used Till Date</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Requested</p>
+            </div>
+            <!-- Casual Leave Card -->
+            <div class="card" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex: 1; min-width: 280px; padding: 20px;">
+                <h3 style="font-size: 18px; margin: 0 0 10px;">Casual Leave</h3>
+                <div class="chart" style="width: 80px; height: 80px; border-radius: 50%; border: 6px solid #28a745; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                    <p style="font-size: 14px; margin: 0;">0 Balance</p>
+                </div>
+                <p style="font-size: 14px; margin: 5px 0;">0 Accrued</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Used Till Date</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Requested</p>
+            </div>
+             <!-- Leave Without Pay Card -->
+             <div class="card" style="background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); flex: 1; min-width: 230px; max-width: 280px; padding: 20px; position: relative;">
+                <div class="apply-leave" style="position: absolute; top: 20px; right: 20px; background-color: #007bff; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">Apply Leave</div>
+                <h3 style="font-size: 18px; margin: 0 0 10px; margin-left: -56px;">Leave Without Pay</h3>
+                <div class="chart" style="width: 80px; height: 80px; border-radius: 50%; border: 6px solid  #ffc107; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                    <p style="font-size: 14px; margin: 0;">As per need</p>
+                </div>
+                <p style="font-size: 14px; margin: 5px 0;">- Accrued</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Used Till Dat</p>
+                <p style="font-size: 14px; margin: 5px 0;">0 Requested</p>
+            </div>
+    
 
 </div>
-<div id="MyAttence" class="hidden">
+</div>
+</div><!-------------------------------------------Div end Leave------------------------------------------------>
+<script>
+    // Get the buttons and views
+    const tableButton = document.getElementById("tableButton");
+    const graphButton = document.getElementById("graphButton");
+    const tableView = document.getElementById("table-view");
+    const graphView = document.getElementById("graph-view");
+
+    // Add event listeners for buttons
+    tableButton.addEventListener("click", () => {
+        tableView.style.display = "block"; // Show Table
+        graphView.style.display = "none"; // Hide Graph
+    });
+
+    graphButton.addEventListener("click", () => {
+        tableView.style.display = "none"; // Hide Table
+        graphView.style.display = "block"; // Show Graph
+    });
+</script>
+            <div id="MyAttence" class="hidden">
                 <h2>My Attendance</h2>
                 <p>View and manage your attendance records here</p>
-</div>
+            </div>
 
             <!-- Form Section -->
             <div id="form" class="hidden">
@@ -572,8 +869,7 @@ updateDate();
                     <?php endforeach; ?>
                 </table>
             </div>
-
-            <div id="MyCalendar" class="hidden">
+         <div id="MyCalendar" class="hidden">
                 <h2>My Calendar</h2>
                 <div style="display: flex; justify-content: space-between;">
                     <div style="width: 70%;">
