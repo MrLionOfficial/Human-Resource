@@ -2,7 +2,7 @@
 // Include necessary files
 require_once 'db_connection.php';
 require_once 'sidebar_function.php';
-require_once 'config.php';
+// require_once 'config.php';
 requireLogin();
 requireAccess(basename(__FILE__));
 
