@@ -521,8 +521,8 @@ updateDate();
 
 
 <div id="MyLeave" class="hidden">
-    <h1>Leave</h1>
-    <div style="display: flex; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); padding: 10px; margin-bottom: 20px;">
+                <h2>My Leave</h2>
+                <div style="display: flex; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); padding: 10px; margin-bottom: 20px;">
         <button class="active" style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer; border-bottom: 2px solid #007bff; color: #007bff;">Status</button>
         <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Requests</button>
         <button style="background: none; border: none; font-size: 16px; padding: 10px 20px; cursor: pointer;">Holiday List</button>
@@ -659,27 +659,9 @@ updateDate();
     <div id="graph-view" style="display: none; text-align: center; padding: 20px;">
         <h3>Graphical Representation Coming Soon!</h3>
     </div>
+            </div>
+
 </div>
-</div>
-
-<script>
-    // Get the buttons and views
-    const tableButton = document.getElementById("tableButton");
-    const graphButton = document.getElementById("graphButton");
-    const tableView = document.getElementById("table-view");
-    const graphView = document.getElementById("graph-view");
-
-    // Add event listeners for buttons
-    tableButton.addEventListener("click", () => {
-        tableView.style.display = "block"; // Show Table
-        graphView.style.display = "none"; // Hide Graph
-    });
-
-    graphButton.addEventListener("click", () => {
-        tableView.style.display = "none"; // Hide Table
-        graphView.style.display = "block"; // Show Graph
-    });
-</script>
 <div id="MyAttence" class="hidden">
                 <h2>My Attendance</h2>
                 <p>View and manage your attendance records here</p>
