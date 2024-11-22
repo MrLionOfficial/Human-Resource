@@ -1,82 +1,21 @@
 <?php
-// Include necessary files
-require_once 'db_connection.php';
-require_once 'sidebar_function.php';
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
 require_once 'config.php';
-requireLogin();
-requireAccess(basename(__FILE__));
+require_once 'functions.php';
 
-// Get the database connection
-$pdo = getDBConnection();
+$user_id = $_SESSION['user_id'];
+$user = get_user_by_id($user_id);
 
-// Get current user's ID
-$userId = getCurrentUserId();
-
-// Get current month and year (default to current if not specified)
-$month = isset($_GET['month']) ? intval($_GET['month']) : intval(date('m'));
-$year = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
-
-// Function to get leave statistics
-function getLeaveStatistics($pdo, $userId) {
-    $sql = "SELECT 
-            leave_type,
-            COUNT(*) as count,
-            SUM(duration) as total_days
-            FROM leaves 
-            WHERE user_id = :userId 
-            AND YEAR(start_date) = YEAR(CURRENT_DATE)
-            GROUP BY leave_type";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (!$user) {
+    error_log("User not found for ID: $user_id");
+    header("Location: login.php");
+    exit();
 }
-
-// Function to get calendar events
-function getCalendarEvents($pdo, $userId, $month, $year) {
-    $sql = "SELECT 
-            l.*,
-            CASE 
-                WHEN l.leave_type = 'annual' THEN 'My Leave'
-                WHEN l.leave_type = 'sick' THEN 'My Leave'
-                WHEN l.status = 'pending' THEN 'My Leave Request'
-                ELSE l.leave_type 
-            END as event_type
-            FROM leaves l
-            WHERE (user_id = :userId OR leave_type = 'holiday')
-            AND MONTH(start_date) = :month 
-            AND YEAR(start_date) = :year";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
-    $stmt->bindParam(':month', $month, PDO::PARAM_INT);
-    $stmt->bindParam(':year', $year, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    $events = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $startDate = strtotime($row['start_date']);
-        $endDate = strtotime($row['end_date']);
-        
-        // Add event for each day in the date range
-        for ($date = $startDate; $date <= $endDate; $date = strtotime('+1 day', $date)) {
-            $day = date('j', $date);
-            if (!isset($events[$day])) {
-                $events[$day] = [];
-            }
-            $events[$day][] = $row;
-        }
-    }
-    return $events;
-}
-
-$leaveStats = getLeaveStatistics($pdo, $userId);
-$calendarEvents = getCalendarEvents($pdo, $userId, $month, $year);
-
-// Calculate days in month and first day
-$daysInMonth = date('t', strtotime("$year-$month-01"));
-$firstDayOfMonth = date('w', strtotime("$year-$month-01"));
 ?>
 
 <!DOCTYPE html>
@@ -84,171 +23,449 @@ $firstDayOfMonth = date('w', strtotime("$year-$month-01"));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Attendance Dashboard - HR Management System</title>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        :root {
+            --primary-blue: #0084ff;
+            --orange: #ff9500;
+            --red: #ff4b4b;
+            --green: #34c759;
+            --light-blue: #e8f3ff;
+            --border-color: #eaeaea;
+            --text-dark: #333;
+            --text-light: #666;
+            --background: #f5f7f9;
         }
-        .calendar-header {
-            background-color: #4DA3FF;
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+        }
+
+        .header {
+            background: var(--primary-blue);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
             color: white;
         }
-        .calendar-cell {
-            aspect-ratio: 1;
-            min-height: 100px;
+
+        .logo {
+            height: 30px;
         }
-        .event-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
+
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            position: relative;
         }
-        .event-indicator {
-            position: absolute;
-            bottom: 4px;
-            left: 4px;
+
+        .search-input {
+            width: 100%;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            font-size: 14px;
+        }
+
+        .sidebar {
+            position: fixed;
+            width: 250px;
+            height: calc(100vh - 60px);
+            background: white;
+            padding: 20px 0;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .nav-item {
+            padding: 12px 24px;
             display: flex;
-            gap: 2px;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            color: var(--text-light);
+            text-decoration: none;
+        }
+
+        .nav-item.active {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+            border-left: 3px solid var(--primary-blue);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 24px;
+        }
+
+        .overview-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .time-display {
+            font-size: 48px;
+            color: var(--primary-blue);
+            font-weight: bold;
+            margin: 20px 0 10px;
+        }
+
+        .date-display {
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-break {
+            background: var(--orange);
+        }
+
+        .btn-clock {
+            background: var(--red);
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--light-blue);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            color: var(--primary-blue);
+            margin: 8px 0;
+        }
+
+        .chart-container {
+            margin-top: 24px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            height: 300px;
+        }
+
+        .request-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .request-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .request-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .request-stat-item {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-light);
+        }
+
+        .raise-request-btn {
+            background: var(--primary-blue);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .period-selector {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+
+        .celebrations-card {
+            background: var(--light-blue);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .tab-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .tab.active {
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="container mx-auto p-6">
-        <!-- Calendar Header -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Calendar</h1>
-            <div class="flex items-center gap-4">
-                <a href="?month=<?php echo $month-1 ?>&year=<?php echo $year ?>" class="text-gray-600 hover:text-gray-800">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                </a>
-                <span class="text-xl font-semibold">
-                    <?php echo date('F Y', strtotime("$year-$month-01")); ?>
-                </span>
-                <a href="?month=<?php echo $month+1 ?>&year=<?php echo $year ?>" class="text-gray-600 hover:text-gray-800">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
+<body>
+    <header class="header">
+        <img src="images/qandle-logo.png" alt="Qandle" class="logo">
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="Search by name, department or location">
+        </div>
+    </header>
+
+    <nav class="sidebar">
+        <a href="#" class="nav-item">
+            <img src="images/profile.png" alt="" style="width: 40px; height: 40px; border-radius: 50%;">
+            Arun .
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">📄</i>
+            My Leave
+        </a>
+        <a href="#" class="nav-item active">
+            <i class="icon">⏰</i>
+            My Attendance
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">💰</i>
+            My Compensation
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">🚪</i>
+            My Exit
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">🔔</i>
+            Alerts
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">📅</i>
+            My Calendar
+        </a>
+        <a href="#" class="nav-item">
+            <i class="icon">👥</i>
+            People
+        </a>
+    </nav>
+
+    <main class="main-content">
+        <h1>Overview</h1>
+        
+        <section class="overview-section">
+            <h2>Time & Attendance</h2>
+            
+            <div class="time-display" id="current-time">06:14:06</div>
+            <div class="date-display" id="current-date">22-Nov-2024</div>
+            
+            <div class="button-group">
+                <button class="btn btn-break" id="break-btn">Start Break</button>
+                <button class="btn btn-clock" id="clock-btn">Clock Out</button>
+            </div>
+
+            <div class="period-selector">
+                Period: Last 7 Day(s) ▼
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Clock In Time</h3>
+                    <div class="stat-value" id="clock-in-time">10:15:42</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Break Duration</h3>
+                    <div class="stat-value" id="break-duration">00:00:00</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Working Hours</h3>
+                    <div class="stat-value">05:01</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Break Duration</h3>
+                    <div class="stat-value">00:00</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </section>
+
+        <section class="request-section">
+            <div class="request-card">
+                <h3>Leave</h3>
+                <div class="request-stats">
+                    <div class="request-stat-item">
+                        <span>Raised</span>
+                        <span>1</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Pending</span>
+                        <span>1</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Approved</span>
+                        <span>0</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Rejected/Cancelled</span>
+                        <span>0</span>
+                    </div>
+                </div>
+                <button class="raise-request-btn">Raise Request</button>
+            </div>
+
+            <div class="request-card">
+                <h3>Attendance Regularization</h3>
+                <div class="request-stats">
+                    <div class="request-stat-item">
+                        <span>Raised</span>
+                        <span>0</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Pending</span>
+                        <span>0</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Approved</span>
+                        <span>0</span>
+                    </div>
+                    <div class="request-stat-item">
+                        <span>Rejected/Cancelled</span>
+                        <span>0</span>
+                    </div>
+                </div>
+                <button class="raise-request-btn">Raise Request</button>
+            </div>
+        </section>
+
+        <div class="celebrations-card">
+            <div class="tab-group">
+                <div class="tab active">BIRTHDAY(S)</div>
+                <div class="tab">WORK ANNIVERSARIES</div>
+            </div>
+            <div style="text-align: center;">
+                <img src="images/birthday-icon.png" alt="Birthday" style="width: 64px; height: 64px;">
+                <p>22-Nov-2024</p>
             </div>
         </div>
+    </main>
 
-        <div class="flex gap-6">
-            <!-- Calendar Grid -->
-            <div class="flex-1 bg-white rounded-lg shadow">
-                <!-- Days Header -->
-                <div class="grid grid-cols-7 calendar-header rounded-t-lg">
-                    <div class="p-4 text-center">Sunday</div>
-                    <div class="p-4 text-center">Monday</div>
-                    <div class="p-4 text-center">Tuesday</div>
-                    <div class="p-4 text-center">Wednesday</div>
-                    <div class="p-4 text-center">Thursday</div>
-                    <div class="p-4 text-center">Friday</div>
-                    <div class="p-4 text-center">Saturday</div>
-                </div>
-
-                <!-- Calendar Grid -->
-                <div class="grid grid-cols-7">
-                    <?php
-                    // Previous month's days
-                    for ($i = 0; $i < $firstDayOfMonth; $i++) {
-                        echo '<div class="calendar-cell border p-2 relative bg-gray-50">';
-                        echo '<span class="text-gray-400 text-sm">' . date('j', strtotime('-' . ($firstDayOfMonth - $i) . ' days', strtotime("$year-$month-01"))) . '</span>';
-                        echo '</div>';
-                    }
-
-                    // Current month's days
-                    for ($day = 1; $day <= $daysInMonth; $day++) {
-                        echo '<div class="calendar-cell border p-2 relative">';
-                        echo '<span class="' . (date('Y-m-d') === "$year-$month-" . sprintf("%02d", $day) ? 'font-bold text-blue-600' : '') . '">' . $day . '</span>';
-                        
-                        // Display events for this day
-                        if (isset($calendarEvents[$day])) {
-                            echo '<div class="event-indicator">';
-                            foreach ($calendarEvents[$day] as $event) {
-                                $color = match($event['event_type']) {
-                                    'My Leave' => 'bg-blue-500',
-                                    'My Leave Request' => 'bg-yellow-500',
-                                    'Team Leave' => 'bg-purple-500',
-                                    'Holiday' => 'bg-red-500',
-                                    'Week Off' => 'bg-green-500',
-                                    default => 'bg-gray-500'
-                                };
-                                echo "<div class='event-dot $color'></div>";
-                            }
-                            echo '</div>';
-                        }
-                        echo '</div>';
-                    }
-
-                    // Next month's days
-                    $remainingCells = 42 - ($daysInMonth + $firstDayOfMonth); // 42 = 6 rows × 7 days
-                    for ($i = 1; $i <= $remainingCells; $i++) {
-                        echo '<div class="calendar-cell border p-2 relative bg-gray-50">';
-                        echo '<span class="text-gray-400 text-sm">' . $i . '</span>';
-                        echo '</div>';
-                    }
-                    ?>
-                </div>
-            </div>
-
-            <!-- Filter Sidebar -->
-            <div class="w-64 bg-white p-4 rounded-lg shadow">
-                <h2 class="font-semibold mb-4">Filter Events</h2>
-                <div class="space-y-3">
-                    <?php
-                    $eventTypes = [
-                        'My Leave' => 0,
-                        'My Leave Request' => 0,
-                        'Notify' => 0,
-                        'Team Leave' => 0,
-                        'Holiday' => 0,
-                        'Week Off' => 0
-                    ];
-
-                    // Update counts from leave statistics
-                    foreach ($leaveStats as $stat) {
-                        if (isset($eventTypes[$stat['leave_type']])) {
-                            $eventTypes[$stat['leave_type']] = $stat['total_days'];
-                        }
-                    }
-
-                    foreach ($eventTypes as $type => $days) {
-                        ?>
-                        <div class="flex items-center justify-between">
-                            <label class="flex items-center">
-                                <input type="checkbox" 
-                                       class="form-checkbox text-blue-600" 
-                                       name="event_filter[]" 
-                                       value="<?php echo htmlspecialchars($type); ?>" 
-                                       checked>
-                                <span class="ml-2 text-sm"><?php echo htmlspecialchars($type); ?></span>
-                            </label>
-                            <span class="text-sm text-gray-500"><?php echo $days; ?> Day(s)</span>
-                        </div>
-                        <?php
-                    }
-                    ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Event filter functionality
-        document.querySelectorAll('input[name="event_filter[]"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const eventType = this.value;
-                const isChecked = this.checked;
-                
-                document.querySelectorAll('.event-dot').forEach(dot => {
-                    if (dot.dataset.eventType === eventType) {
-                        dot.style.display = isChecked ? 'block' : 'none';
-                    }
-                });
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', { 
+                hour12: false 
             });
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', { 
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Initialize attendance chart
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['18 Mon', '19 Tue', '20 Wed', '21 Thu', '22 Fri', '23 Sat', '24 Sun'],
+                datasets: [{
+                    label: 'Work Hours',
+                    data: [5.52, 0, 7.26, 0, 6.14, 0, 0],
+                    backgroundColor: '#34c759'
+                }, {
+                    label: 'Break Duration',
+                    data: [0, 10.49, 0, 0, 0, 0, 0],
+                    backgroundColor: '#ff9500'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Handle break button
+        let isOnBreak = false;
+        let breakStartTime = null;
+        
+        document.getElementById('break-btn').addEventListener('click', function() {
+            if (!isOnBreak) {
+                this.textContent = 'End Break';
+                this.style.backgroundColor = 'var(--red)';
+                breakStartTime = new Date();
+            } else {
+                this.textContent = 'Start Break';
+                this.style.backgroundColor = 'var(--orange)';
+                const duration = Math.floor((new Date() - breakStartTime) / 1000);
+                const minutes = Math.floor(duration / 60);
+                const seconds = duration % 60;
+                document.getElementById('break-duration').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:00`;
+            }
+            isOnBreak = !isOnBreak;
+        });
+
+        // Handle clock button
+        let isClockedIn = true;
+        document.getElementById('clock-btn').addEventListener('click', function() {
+            if (isClockedIn) {
+                this.textContent = 'Clock In';
+                this.style.backgroundColor = 'var(--primary-blue)';
+            } else {
+                this.textContent = 'Clock Out';
+                this.style.backgroundColor = 'var(--red)';
+            }
+            isClockedIn = !isClockedIn;
         });
     </script>
 </body>
